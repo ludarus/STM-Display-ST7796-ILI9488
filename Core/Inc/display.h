@@ -2,7 +2,7 @@
  * display.h
  *
  *  Created on: Jun 17, 2026
- *      Author: joe
+ *      Author: Luke Fadel
  */
 
 #ifndef INC_DISPLAY_H_

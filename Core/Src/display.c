@@ -115,8 +115,7 @@ void DISPLAY_INIT(SPI_HandleTypeDef *spi) {
 
 }
 
-void DISPLAY_WRITE(SPI_HandleTypeDef *spi, uint16_t x, uint16_t y,
-		Image_t *image, bool overWrite) {
+void DISPLAY_WRITE(SPI_HandleTypeDef *spi, uint16_t x, uint16_t y, Image_t *image, bool overWrite) {
 	if (!state.currentlyDrawing) {
 
 		// set column address command

@@ -5,4 +5,4 @@
 ../Core/Src/display.c:61:6:DISPLAY_DATA	1
 ../Core/Src/display.c:76:6:DISPLAY_INIT	1
 ../Core/Src/display.c:118:6:DISPLAY_WRITE	15
-../Core/Src/display.c:245:6:HAL_SPI_TxCpltCallback	5
+../Core/Src/display.c:244:6:HAL_SPI_TxCpltCallback	5

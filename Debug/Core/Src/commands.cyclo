@@ -1,5 +1,8 @@
-../Core/Src/commands.c:15:16:helpCMD	1
-../Core/Src/commands.c:30:10:getCommandBuffer	1
-../Core/Src/commands.c:34:8:getCommandSize	1
-../Core/Src/commands.c:39:6:parseCommand	4
-../Core/Src/commands.c:60:6:HAL_UARTEx_RxEventCallback	1
+../Core/Src/commands.c:17:6:commandsInit	1
+../Core/Src/commands.c:24:19:helpCMD	1
+../Core/Src/commands.c:32:19:displayImageCMD	1
+../Core/Src/commands.c:57:6:stringsEqual	3
+../Core/Src/commands.c:68:10:getCommandBuffer	1
+../Core/Src/commands.c:72:8:getCommandSize	1
+../Core/Src/commands.c:77:6:parseCommand	4
+../Core/Src/commands.c:95:6:HAL_UARTEx_RxEventCallback	1

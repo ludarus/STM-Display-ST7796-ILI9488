@@ -4,5 +4,5 @@
 ../Core/Src/display.c:47:6:DISPLAY_CMD	1
 ../Core/Src/display.c:62:6:DISPLAY_DATA	1
 ../Core/Src/display.c:77:6:DISPLAY_INIT	1
-../Core/Src/display.c:119:6:DISPLAY_WRITE	13
-../Core/Src/display.c:245:6:HAL_SPI_TxCpltCallback	5
+../Core/Src/display.c:119:6:DISPLAY_WRITE	15
+../Core/Src/display.c:246:6:HAL_SPI_TxCpltCallback	5

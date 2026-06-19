@@ -231,9 +231,10 @@ void DISPLAY_WRITE(SPI_HandleTypeDef *spi, uint16_t x, uint16_t y,
 			for (uint32_t i = state.imageProgress / 2;
 					i < (CHUNK / 2) + state.imageProgress / 2; i++) {
 				uint32_t localIdx = (i - (state.imageProgress / 2)) * 2; // local buffer offset
-				state.buf[state.activeBuf][localIdx] = GET_PIXEL(
-						state.dcompImage, i);
-				state.buf[state.activeBuf][localIdx + 1] = 0;
+				state.buf[state.activeBuf][localIdx] =
+						GET_PIXEL(state.dcompImage, i) ? ON_COLOR : OFF_COLOR;
+				state.buf[state.activeBuf][localIdx + 1] =
+						GET_PIXEL(state.dcompImage, i) ? ON_COLOR : OFF_COLOR;
 			}
 		}
 	} else {

@@ -185,9 +185,14 @@ def generate_header(data: list, var_name: str, width: int, height: int) -> None:
 def main():
     # getting arguments from cli
     parser = argparse.ArgumentParser()
-    os.path
     parser.add_argument("input", help="a 1bpp BMP file")
     parser.add_argument("output", help="output directory of the header file")
+    parser.add_argument(
+        "-d",
+        "--directory",
+        action="store_true",
+        help="attempt to convert every file in the directory",
+    )
     args = parser.parse_args()
     # checking if file exists
     if not os.path.isfile(args.input):
@@ -198,21 +203,48 @@ def main():
         print(f"ERROR: Directory not found: {args.output}", file=sys.stderr)
         sys.exit(1)
 
-    try:
-        width, height, data = parse_file(args.input)
-    except ValueError as e:
-        print(f"ERROR: {e}", file=sys.stderr)
-        sys.exit(1)
+    if not args.directory:
+        try:
+            width, height, data = parse_file(args.input)
+            var_name = sanitise_name(args.input)
+            header = generate_header(data, var_name, width, height)
 
-    var_name = sanitise_name(args.input)
-    header = generate_header(data, var_name, width, height)
+            with open(f"{args.output}{var_name}.h", "w") as f:
+                f.write(header)
+            print(
+                f"Successfully compressed bmp to c array. Header file is located in {args.output}{var_name}.h"
+            )
 
-    with open(f"{args.output}{var_name}.h", "w") as f:
-        f.write(header)
+        except ValueError as e:
+            print(f"ERROR: {e}", file=sys.stderr)
+            sys.exit(1)
 
-    print(
-        f"Successfully compressed bmp to c array. Header file is located in {args.output}{var_name}.h"
-    )
+    else:
+        try:
+
+            count = 0
+            dirName = os.path.dirname(args.input)
+
+            for possibleFile in os.listdir(dirName):
+                if os.path.isfile(f"{dirName}/{possibleFile}"):
+                    width, height, data = parse_file(f"{dirName}/{possibleFile}")
+                    var_name = sanitise_name(f"{dirName}/{possibleFile}")
+                    header = generate_header(data, var_name, width, height)
+
+                    with open(f"{args.output}{var_name}.h", "w") as f:
+                        f.write(header)
+
+                    print(
+                        f"Successfully compressed {dirName}/{possibleFile} to c array. Header file is located in {args.output}{var_name}.h"
+                    )
+                    count += 1
+            print(
+                f"successfully converted {count} files in {os.path.dirname(args.input)}"
+            )
+
+        except ValueError as e:
+            print(f"ERROR: {e}", file=sys.stderr)
+            sys.exit(1)
 
 
 if __name__ == "__main__":

@@ -11,7 +11,6 @@
 #include "main.h"
 #include <stdbool.h>
 #include "image.h"
-#include <memory.h>
 #include "display.h"
 
 static ImageTransferState_t state;
@@ -45,7 +44,7 @@ void DISPLAY_DESELECT(void) {
 //sends cmd to lcd
 void DISPLAY_CMD(SPI_HandleTypeDef *spi, uint8_t cmd) {
 	//setting DC pin to command mode (high)
-	HAL_GPIO_WritePin(DISPLAY_DC_GPIO_Port, DISPLAY_DC_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(DISPLAY_DC_GPIO_Port, DISPLAY_DC_Pin, GPIO_PIN_RESET);
 
 	//selecting SPI device
 	DISPLAY_SELECT();
@@ -60,7 +59,7 @@ void DISPLAY_CMD(SPI_HandleTypeDef *spi, uint8_t cmd) {
 //sends data to lcd
 void DISPLAY_DATA(SPI_HandleTypeDef *spi, uint8_t *data, uint16_t size) {
 	//setting DC pin to command mode (low)
-	HAL_GPIO_WritePin(DISPLAY_DC_GPIO_Port, DISPLAY_DC_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(DISPLAY_DC_GPIO_Port, DISPLAY_DC_Pin, GPIO_PIN_SET);
 
 	//selecting SPI device
 	DISPLAY_SELECT();
@@ -70,6 +69,24 @@ void DISPLAY_DATA(SPI_HandleTypeDef *spi, uint8_t *data, uint16_t size) {
 
 	//deselecting SPI device
 	DISPLAY_DESELECT();
+}
+
+void DISPLAY_UNLOCK_EXTENDED(SPI_HandleTypeDef *spi) {
+	// unlocking extended command set
+	DISPLAY_CMD(spi, 0xF0);
+	uint8_t unlockKeys[2] = { 0xC3, 0x96 };
+	DISPLAY_DATA(spi, &unlockKeys[0], 1);
+	DISPLAY_CMD(spi, 0xF0);
+	DISPLAY_DATA(spi, &unlockKeys[1], 1);
+}
+
+void DISPLAY_LOCK_EXTENDED(SPI_HandleTypeDef *spi) {
+	// locking extended command set
+	DISPLAY_CMD(spi, 0xF0);
+	uint8_t lockKeys[2] = { 0xC3, 0x69 };
+	DISPLAY_DATA(spi, &lockKeys[0], 1);
+	DISPLAY_CMD(spi, 0xF0);
+	DISPLAY_DATA(spi, &lockKeys[1], 1);
 }
 
 // initializes the ST7796S
@@ -88,12 +105,15 @@ void DISPLAY_INIT(SPI_HandleTypeDef *spi) {
 	DISPLAY_CMD(spi, 0x11);
 	HAL_Delay(120);
 
-	// NOTE: apparently an unlock sequence is required to use these commands
+	// backlight on
+	HAL_GPIO_WritePin(DISPLAY_LED_GPIO_Port, DISPLAY_LED_Pin, GPIO_PIN_SET);
 
-	// memory data access control - instruction 36h MADCTL
+	// unlocking extended command set
+//	DISPLAY_UNLOCK_EXTENDED(spi);
+
+// memory data access control - instruction 36h MADCTL
 	DISPLAY_CMD(spi, 0x36);
-	// MX = 0, MY = 0, MV = 0, ML = 0, RGB = 0, MH = 0
-	uint8_t madctl = 0;
+	uint8_t madctl = 0x20;
 	DISPLAY_DATA(spi, &madctl, 1);
 
 	// Interface Pixel Format - instruction 3Ah COLMOD
@@ -108,15 +128,71 @@ void DISPLAY_INIT(SPI_HandleTypeDef *spi) {
 	uint8_t inversion = 0x01;
 	DISPLAY_DATA(spi, &inversion, 1);
 
-	// NOTE: if unlock was required before, a lock is required now
+	// locking extended command set
+//	DISPLAY_LOCK_EXTENDED(spi);
 
 	// display on
 	DISPLAY_CMD(spi, 0x29);
 
 }
 
-void DISPLAY_WRITE(SPI_HandleTypeDef *spi, uint16_t x, uint16_t y, Image_t *image, bool overWrite) {
+void DISPLAY_FILL(SPI_HandleTypeDef *spi) {
+	// set column address command
+	DISPLAY_CMD(spi, 0x2A);
+	// parameters: starting col MSB, starting col LSB, ending col MSB, ending col LSB
+	uint8_t caset[] = {
+
+	(uint8_t) (0),
+
+	(uint8_t) (0),
+
+	(uint8_t) (1),
+
+	(uint8_t) (224) };
+
+	DISPLAY_DATA(spi, caset, 4);
+
+	// set row address command
+	DISPLAY_CMD(spi, 0x2B);
+	// parameters: starting row MSB, starting row LSB, ending row MSB, ending row LSB
+	uint8_t raset[] = {
+
+	(uint8_t) (0),
+
+	(uint8_t) (0),
+
+	(uint8_t) (1),
+
+	(uint8_t) (64) };
+
+	DISPLAY_DATA(spi, raset, 4);
+
+	// write data command
+	DISPLAY_CMD(spi, 0x2C);
+
+	// setting to data mode
+	HAL_GPIO_WritePin(DISPLAY_DC_GPIO_Port, DISPLAY_DC_Pin, GPIO_PIN_SET);
+
+	// selecting spi device
+	DISPLAY_SELECT();
+	uint8_t data[2] = { 0xFF, 0xFF };
+	for (uint32_t r = 0; r < 320 * 480; r++) {
+		HAL_SPI_Transmit(spi, data, 2, HAL_MAX_DELAY);
+	}
+
+	DISPLAY_DESELECT();
+}
+
+// TODO: add bounds to x and y
+void DISPLAY_WRITE(SPI_HandleTypeDef *spi, uint16_t x, uint16_t y,
+		Image_t *image, bool overWrite) {
 	if (!state.currentlyDrawing) {
+
+		state.x = x;
+		state.y = y;
+
+		state.width = image->width;
+		state.height = image->height;
 
 		// set column address command
 		DISPLAY_CMD(spi, 0x2A);
@@ -141,46 +217,43 @@ void DISPLAY_WRITE(SPI_HandleTypeDef *spi, uint16_t x, uint16_t y, Image_t *imag
 				(uint8_t) ((y + image->height - 1) & 0xFF) };
 		DISPLAY_DATA(spi, raset, 4);
 
-		// resetting the decompiled image
-		memset(state.dcompImage, 0, sizeof(state.dcompImage));
-		// size in bits
+		// decompressing image to cloned buffer
+
+		//size of decompressed image in bits, should equal width * height. acts as an index throughout the loop
 		state.dcompImage_SIZE = 0;
+		// iterating through compressed image
 		for (uint32_t i = 0; i < image->size; i++) {
+			// iterating through the current RLE value
 			for (uint8_t j = 0; j < image->data[i]; j++) {
+				// calculating screen pixel index from current position within image
+				uint32_t globalpos = 480
+						* (y + (state.dcompImage_SIZE / image->width)) + x
+						+ (state.dcompImage_SIZE % image->width);
+
 				if (i % 2) {
 					//pixel is high, 1 % 2 = 1
-					SET_PIXEL(state.dcompImage, state.dcompImage_SIZE);
+					// will always be high in overwrite and OR mode
+					SET_PIXEL(state.screenCopy, globalpos);
 				} else {
 					//pixel is low
-					CLR_PIXEL(state.dcompImage, state.dcompImage_SIZE);
+					if (overWrite) {
+						CLR_PIXEL(state.screenCopy, globalpos);
+					} else {
+						OR_PIXEL(state.screenCopy, globalpos, 0);
+					}
 				}
 				state.dcompImage_SIZE++;
 			}
 		}
 
-		// modifying the cloned buffer
-		for (uint16_t h = 0; h < image->height; h++) {
-			for (uint16_t w = 0; w < image->width; w++) {
-				uint32_t globalpos = 480 * (y + h) + x + w;
-				uint32_t localpos = (image->width * h) + w;
-				if (overWrite) {
-					if (GET_PIXEL(state.dcompImage, localpos)) {
-						SET_PIXEL(state.screenCopy, globalpos);
-					} else {
-						CLR_PIXEL(state.screenCopy, globalpos);
-					}
-				} else {
-					OR_PIXEL(state.screenCopy, globalpos,
-							GET_PIXEL(state.dcompImage, localpos));
-				}
-			}
-		}
+		// should be true already (with possible off by one error)
+//		state.dcompImage_SIZE = image->width * image->height;
 
 		// write data command
 		DISPLAY_CMD(spi, 0x2C);
 
 		// setting to data mode
-		HAL_GPIO_WritePin(DISPLAY_DC_GPIO_Port, DISPLAY_DC_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(DISPLAY_DC_GPIO_Port, DISPLAY_DC_Pin, GPIO_PIN_SET);
 
 		// selecting spi device
 		DISPLAY_SELECT();
@@ -191,7 +264,7 @@ void DISPLAY_WRITE(SPI_HandleTypeDef *spi, uint16_t x, uint16_t y, Image_t *imag
 		state.imageProgress = 0;
 		state.imageTarget = state.dcompImage_SIZE * 2;
 
-		//setting status to busy
+		//setting status to busy - maybe move this to earlier in func
 		state.currentlyDrawing = true;
 
 		//debug clock
@@ -202,12 +275,23 @@ void DISPLAY_WRITE(SPI_HandleTypeDef *spi, uint16_t x, uint16_t y, Image_t *imag
 		if (state.imageTarget <= CHUNK) {
 			//not required
 
-			//expanding to buffer
+//			//expanding to buffer
 			for (uint32_t i = 0; i < state.dcompImage_SIZE; i++) {
-				state.buf[state.activeBuf][i * 2] = GET_PIXEL(state.dcompImage,
-						i);
-				state.buf[state.activeBuf][(i * 2) + 1] = 0;
+				// converting image space index to screen space index
+				uint32_t globalpos = 480 * (y + (i / image->width)) + x
+						+ (i % image->width);
+
+				//expanding bit to 2 bytes as per the color specification
+				state.buf[state.activeBuf][i] =
+				GET_PIXEL(state.screenCopy, globalpos) ? ON_COLOR : OFF_COLOR;
+				state.buf[state.activeBuf][i + 1] =
+				GET_PIXEL(state.screenCopy, globalpos) ? ON_COLOR : OFF_COLOR;
 			}
+
+//			uint8_t data[2] = { 0, 0 };
+//				for (uint32_t r = 0; r < state.dcompImage_SIZE; r++) {
+//					HAL_SPI_Transmit(spi, data, 2, HAL_MAX_DELAY);
+//				}
 
 			HAL_SPI_Transmit_DMA(spi, state.buf[state.activeBuf],
 					state.imageTarget);
@@ -217,22 +301,33 @@ void DISPLAY_WRITE(SPI_HandleTypeDef *spi, uint16_t x, uint16_t y, Image_t *imag
 
 			//expanding to buffer
 			for (uint32_t i = 0; i < CHUNK / 2; i++) {
-				state.buf[state.activeBuf][i * 2] = GET_PIXEL(state.dcompImage,
-						i);
-				state.buf[state.activeBuf][(i * 2) + 1] = 0;
+				// converting image space index to screen space index
+				uint32_t globalpos = 480 * (y + (i / image->width)) + x
+						+ (i % image->width);
+
+				//expanding bit to 2 bytes as per the color specification
+				state.buf[state.activeBuf][i] =
+				GET_PIXEL(state.screenCopy, globalpos) ? ON_COLOR : OFF_COLOR;
+				state.buf[state.activeBuf][i + 1] =
+				GET_PIXEL(state.screenCopy, globalpos) ? ON_COLOR : OFF_COLOR;
+
 			}
 
 			HAL_SPI_Transmit_DMA(spi, state.buf[state.activeBuf], CHUNK);
 			state.activeBuf = !state.activeBuf;
 			state.imageProgress += CHUNK;
 			//loading the next chunk of the image into ram for faster transfer
-			for (uint32_t i = state.imageProgress / 2;
-					i < (CHUNK / 2) + state.imageProgress / 2; i++) {
-				uint32_t localIdx = (i - (state.imageProgress / 2)) * 2; // local buffer offset
-				state.buf[state.activeBuf][localIdx] =
-						GET_PIXEL(state.dcompImage, i) ? ON_COLOR : OFF_COLOR;
-				state.buf[state.activeBuf][localIdx + 1] =
-						GET_PIXEL(state.dcompImage, i) ? ON_COLOR : OFF_COLOR;
+			for (uint32_t i = 0; i < state.imageProgress / 2; i++) {
+				uint32_t globalpos = 480
+						* (y + ((i + (state.imageProgress / 2)) / image->width))
+						+ x + ((i + state.imageProgress / 2) % image->width);
+
+				//expanding bit to 2 bytes as per the color specification
+				state.buf[state.activeBuf][i] =
+				GET_PIXEL(state.screenCopy, globalpos) ? ON_COLOR : OFF_COLOR;
+				state.buf[state.activeBuf][i + 1] =
+				GET_PIXEL(state.screenCopy, globalpos) ? ON_COLOR : OFF_COLOR;
+
 			}
 		}
 	} else {
@@ -261,11 +356,17 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi) {
 			state.imageProgress += CHUNK;
 			//loading the next chunk of the image into ram for faster transfer, and swapping buffers
 			state.activeBuf = !state.activeBuf;
-			for (uint32_t i = state.imageProgress / 2;
-					i < (CHUNK / 2) + state.imageProgress / 2; i++) {
-				state.buf[state.activeBuf][i * 2] = GET_PIXEL(state.dcompImage,
-						i);
-				state.buf[state.activeBuf][(i * 2) + 1] = 0;
+			for (uint32_t i = 0; i < state.imageProgress / 2; i++) {
+				uint32_t globalpos = 480
+						* (state.y + ((i + (state.imageProgress / 2)) / state.width))
+						+ state.x + ((i + state.imageProgress / 2) % state.width);
+
+				//expanding bit to 2 bytes as per the color specification
+				state.buf[state.activeBuf][i] =
+				GET_PIXEL(state.screenCopy, globalpos) ? ON_COLOR : OFF_COLOR;
+				state.buf[state.activeBuf][i + 1] =
+				GET_PIXEL(state.screenCopy, globalpos) ? ON_COLOR : OFF_COLOR;
+
 			}
 
 		}

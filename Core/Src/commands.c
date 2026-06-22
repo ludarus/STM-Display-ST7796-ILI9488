@@ -59,8 +59,8 @@ bool stringsEqual(uint8_t* s1, uint8_t* s2, uint16_t len){
 		if (*s1++ != *s2++){
 			return false;
 		}
-		return true;
 	}
+	return true;
 }
 
 

@@ -1,5 +1,6 @@
 "./Core/Src/commands.o"
-"./Core/Src/display.o"
+"./Core/Src/display-ili9488.o"
+"./Core/Src/display-st7796s.o"
 "./Core/Src/main.o"
 "./Core/Src/stm32f0xx_hal_msp.o"
 "./Core/Src/stm32f0xx_it.o"

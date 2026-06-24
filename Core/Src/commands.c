@@ -4,8 +4,8 @@
  *  Created on: Jun 19, 2026
  *      Author: Luke Fadel
  */
+#include <display-ili9488.h>
 #include "commands.h"
-#include "display.h"
 #include "main.h"
 #include <stdbool.h>
 // testing includes
@@ -181,7 +181,7 @@ const ByteArray_t helpCMD(void) {
 }
 
 const ByteArray_t displayImageCMD(void) {
-  if (DISPLAY_WRITE(spi, 0, 0, images[imageNum % sizeof(images)], !isOr)) {
+  if (ILI9488_WRITE(spi, 0, 0, images[imageNum % sizeof(images)], !isOr)) {
     imageNum++;
     static uint8_t msg[] = "SUCESSFULLY DISPLAYED IMAGE\n";
     return (ByteArray_t){.data = msg, .size = sizeof(msg) - 1};
@@ -192,7 +192,7 @@ const ByteArray_t displayImageCMD(void) {
 }
 
 const ByteArray_t refreshCMD(void) {
-  if (DISPLAY_REFRESH(spi)) {
+  if (ILI9488_REFRESH(spi)) {
     imageNum++;
     static uint8_t msg[] = "SUCESSFULLY REFRESHED DISPLAY\n";
     return (ByteArray_t){.data = msg, .size = sizeof(msg) - 1};

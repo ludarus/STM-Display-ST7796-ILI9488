@@ -143,8 +143,6 @@ def sanitise_name(name: str) -> str:
 def generate_header(data: list, var_name: str, width: int, height: int) -> None:
     guard = f"{var_name.upper()}_H"
 
-    # TODO: UPDATE THIS TO INCLUDE A STRUCT
-
     bytes_per_row = (width + 7) // 8
     total_bytes = len(data)
 

@@ -1,0 +1,10 @@
+../Core/Src/display-ili9488.c:111:6:ILI9488_RESET	8	static
+../Core/Src/display-ili9488.c:126:6:ILI9488_SELECT	8	static
+../Core/Src/display-ili9488.c:131:6:ILI9488_DESELECT	8	static
+../Core/Src/display-ili9488.c:137:6:ILI9488_CMD	16	static
+../Core/Src/display-ili9488.c:152:6:ILI9488_DATA	32	static
+../Core/Src/display-ili9488.c:167:6:ILI9488_INIT	24	static
+../Core/Src/display-ili9488.c:214:6:ILI9488_FILL	40	static
+../Core/Src/display-ili9488.c:275:6:ILI9488_REFRESH	32	static
+../Core/Src/display-ili9488.c:335:6:ILI9488_WRITE	96	static
+../Core/Src/display-ili9488.c:531:6:HAL_SPI_TxCpltCallback	40	static

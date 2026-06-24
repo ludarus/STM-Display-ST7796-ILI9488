@@ -1,0 +1,11 @@
+../Core/Src/display-st7796s.c:24:6:ST7796S_RESET	8	static
+../Core/Src/display-st7796s.c:38:6:ST7796S_SELECT	8	static
+../Core/Src/display-st7796s.c:43:6:ST7796S_DESELECT	8	static
+../Core/Src/display-st7796s.c:49:6:ST7796S_CMD	16	static
+../Core/Src/display-st7796s.c:64:6:ST7796S_DATA	32	static
+../Core/Src/display-st7796s.c:78:6:ST7796S_UNLOCK_EXTENDED	32	static
+../Core/Src/display-st7796s.c:87:6:ST7796S_LOCK_EXTENDED	32	static
+../Core/Src/display-st7796s.c:97:6:ST7796S_INIT	24	static
+../Core/Src/display-st7796s.c:143:6:ST7796S_FILL	32	static
+../Core/Src/display-st7796s.c:214:6:ST7796S_REFRESH	32	static
+../Core/Src/display-st7796s.c:275:6:ST7796S_WRITE	96	static

@@ -4,11 +4,12 @@
  *  Created on: Jun 19, 2026
  *      Author: Luke Fadel
  */
-#include <display-ili9488.h>
 #include "commands.h"
 #include "main.h"
+#include <display-ili9488.h>
 #include <stdbool.h>
-// testing includes
+
+// includes for every image
 #include "File_002_ObjNum_001_NEW_6_17_26.h"
 #include "File_005_ObjNum_004_480x320_6_18_26.h"
 #include "File_006_ObjNum_005_480x320_6_18_26_C.h"
@@ -84,6 +85,7 @@
 #include "File_078_ObjNum_148_480x320_6_18_26.h"
 #include "File_079_ObjNum_149_480x320_6_17_26.h"
 
+// array containing every image
 const Image_t *images[74] = {
     &File_074_ObjNum_138_48x143_6_19_26,
     &File_054_ObjNum_087_48x255_6_19_26,
@@ -161,19 +163,38 @@ const Image_t *images[74] = {
     &File_059_ObjNum_094_480x320_6_18_26,
 };
 
+//--------------------------------------------------------------------------------
+// private variables
+
+// standard error message when command is not found
 const uint8_t errorMsg[] = "\n\rCommand not found\r\n";
 
+// reference to spi interface. should be set upon initialization
 static const SPI_HandleTypeDef *spi;
 
+// state for testing commands
 static uint8_t imageNum = 34;
 static bool isOr;
 
+// a buffer that stores the most recent serial input
+uint8_t commandBuffer[255];
+
+//--------------------------------------------------------------------------------
+// public functions
+
+// initialization sequence. currently just a setter that takes the serial input
 void commandsInit(SPI_HandleTypeDef *spiInterface) { spi = spiInterface; }
 
-// command action functions
+uint8_t *getCommandBuffer(void) { return commandBuffer; }
+
+size_t getCommandSize(void) { return sizeof(commandBuffer); }
+
+//--------------------------------------------------------------------------------
+// command handles
 
 // TODO: improve or remove this command
 const ByteArray_t helpCMD(void) {
+  // simply returns a help message. TODO: make this modular when there's time
   static uint8_t msg[] =
       "HELP MENU FOR ST7796S DISPLAY\n COMMANDS ARE: \nHELP (show this menu), "
       "\nDISPLAY (display test)\n";
@@ -181,7 +202,9 @@ const ByteArray_t helpCMD(void) {
 }
 
 const ByteArray_t displayImageCMD(void) {
-  if (ILI9488_WRITE(spi, 0, 0, images[imageNum], !isOr)) {
+  // checking if the display is currently being written to
+  if (ILI9488_LOAD(spi, 0, 0, images[imageNum], !isOr)) {
+    // cycling through the images
     imageNum++;
     imageNum %= 74;
     static uint8_t msg[] = "SUCESSFULLY DISPLAYED IMAGE\n";
@@ -193,6 +216,7 @@ const ByteArray_t displayImageCMD(void) {
 }
 
 const ByteArray_t refreshCMD(void) {
+  // checking if the display is currently being written to
   if (ILI9488_REFRESH(spi)) {
     imageNum++;
     static uint8_t msg[] = "SUCESSFULLY REFRESHED DISPLAY\n";
@@ -204,11 +228,16 @@ const ByteArray_t refreshCMD(void) {
 }
 
 const ByteArray_t orCMD(void) {
+  // or toggle
   isOr = !isOr;
   static uint8_t msg[] = "TOGGLED OR MODE\n";
   return (ByteArray_t){.data = msg, .size = sizeof(msg) - 1};
 }
 
+//--------------------------------------------------------------------------------
+
+// commands
+// defining a keyword and handle for each command
 const Command_t commands[] = {
     {.keyword = (const uint8_t *)"HELP\n",
      .keyword_size = 5,
@@ -222,9 +251,9 @@ const Command_t commands[] = {
     {.keyword = (const uint8_t *)"OR\n", .keyword_size = 3, .action = orCMD},
 };
 
-uint8_t commandBuffer[255];
+//--------------------------------------------------------------------------------
+// utility functions
 
-// helper functions
 bool stringsEqual(uint8_t *s1, uint8_t *s2, uint16_t len) {
   while (len--) {
     if (*s1++ != *s2++) {
@@ -234,20 +263,18 @@ bool stringsEqual(uint8_t *s1, uint8_t *s2, uint16_t len) {
   return true;
 }
 
-// public getter functions
-uint8_t *getCommandBuffer(void) { return commandBuffer; }
-
-size_t getCommandSize(void) { return sizeof(commandBuffer); }
-
-// private
+//--------------------------------------------------------------------------------
+// private functions
 void parseCommand(UART_HandleTypeDef *huart, uint16_t size) {
+  // iterating through every command and testing if the keyword matches the
+  // input
   for (uint8_t i = 0; i < sizeof(commands) / sizeof(commands[0]); i++) {
     // if the received command equals a command in the command list
     if (size == commands[i].keyword_size &&
         stringsEqual(commands[i].keyword, &commandBuffer[0], size)) {
       const ByteArray_t response = commands[i].action();
 
-      // sending response
+      // sending response back to serial device
       HAL_UART_Transmit_IT(huart, response.data, response.size);
       return;
     }
@@ -257,9 +284,10 @@ void parseCommand(UART_HandleTypeDef *huart, uint16_t size) {
   HAL_UART_Transmit_IT(huart, errorMsg, sizeof(errorMsg) - 1);
 }
 
-// on receive
+//--------------------------------------------------------------------------------
+// serial input callback
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
-  // restarting receive
+  // restarting receive (async)
   HAL_UARTEx_ReceiveToIdle_DMA(huart, commandBuffer, sizeof(commandBuffer));
 
   // parsing command

@@ -13,6 +13,7 @@
 typedef struct {
   const uint16_t width;
   const uint16_t height;
+  // rle encoded string of data
   const uint8_t *data;
   const uint32_t size;
 } Image_t;

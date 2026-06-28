@@ -18,51 +18,50 @@
 static ImageTransferState_t state;
 
 // lookup table for possible 3 byte packages
-static const uint32_t table[256] = {
-    0x00000000, 0x000000E0, 0x0000000E, 0x000000EE, 0x0000E000, 0x0000E0E0,
-    0x0000E00E, 0x0000E0EE, 0x00000E00, 0x00000EE0, 0x00000E0E, 0x00000EEE,
-    0x0000EE00, 0x0000EEE0, 0x0000EE0E, 0x0000EEEE, 0x00E00000, 0x00E000E0,
-    0x00E0000E, 0x00E000EE, 0x00E0E000, 0x00E0E0E0, 0x00E0E00E, 0x00E0E0EE,
-    0x00E00E00, 0x00E00EE0, 0x00E00E0E, 0x00E00EEE, 0x00E0EE00, 0x00E0EEE0,
-    0x00E0EE0E, 0x00E0EEEE, 0x000E0000, 0x000E00E0, 0x000E000E, 0x000E00EE,
-    0x000EE000, 0x000EE0E0, 0x000EE00E, 0x000EE0EE, 0x000E0E00, 0x000E0EE0,
-    0x000E0E0E, 0x000E0EEE, 0x000EEE00, 0x000EEEE0, 0x000EEE0E, 0x000EEEEE,
-    0x00EE0000, 0x00EE00E0, 0x00EE000E, 0x00EE00EE, 0x00EEE000, 0x00EEE0E0,
-    0x00EEE00E, 0x00EEE0EE, 0x00EE0E00, 0x00EE0EE0, 0x00EE0E0E, 0x00EE0EEE,
-    0x00EEEE00, 0x00EEEEE0, 0x00EEEE0E, 0x00EEEEEE, 0xE0000000, 0xE00000E0,
-    0xE000000E, 0xE00000EE, 0xE000E000, 0xE000E0E0, 0xE000E00E, 0xE000E0EE,
-    0xE0000E00, 0xE0000EE0, 0xE0000E0E, 0xE0000EEE, 0xE000EE00, 0xE000EEE0,
-    0xE000EE0E, 0xE000EEEE, 0xE0E00000, 0xE0E000E0, 0xE0E0000E, 0xE0E000EE,
-    0xE0E0E000, 0xE0E0E0E0, 0xE0E0E00E, 0xE0E0E0EE, 0xE0E00E00, 0xE0E00EE0,
-    0xE0E00E0E, 0xE0E00EEE, 0xE0E0EE00, 0xE0E0EEE0, 0xE0E0EE0E, 0xE0E0EEEE,
-    0xE00E0000, 0xE00E00E0, 0xE00E000E, 0xE00E00EE, 0xE00EE000, 0xE00EE0E0,
-    0xE00EE00E, 0xE00EE0EE, 0xE00E0E00, 0xE00E0EE0, 0xE00E0E0E, 0xE00E0EEE,
-    0xE00EEE00, 0xE00EEEE0, 0xE00EEE0E, 0xE00EEEEE, 0xE0EE0000, 0xE0EE00E0,
-    0xE0EE000E, 0xE0EE00EE, 0xE0EEE000, 0xE0EEE0E0, 0xE0EEE00E, 0xE0EEE0EE,
-    0xE0EE0E00, 0xE0EE0EE0, 0xE0EE0E0E, 0xE0EE0EEE, 0xE0EEEE00, 0xE0EEEEE0,
-    0xE0EEEE0E, 0xE0EEEEEE, 0x0E000000, 0x0E0000E0, 0x0E00000E, 0x0E0000EE,
-    0x0E00E000, 0x0E00E0E0, 0x0E00E00E, 0x0E00E0EE, 0x0E000E00, 0x0E000EE0,
-    0x0E000E0E, 0x0E000EEE, 0x0E00EE00, 0x0E00EEE0, 0x0E00EE0E, 0x0E00EEEE,
-    0x0EE00000, 0x0EE000E0, 0x0EE0000E, 0x0EE000EE, 0x0EE0E000, 0x0EE0E0E0,
-    0x0EE0E00E, 0x0EE0E0EE, 0x0EE00E00, 0x0EE00EE0, 0x0EE00E0E, 0x0EE00EEE,
-    0x0EE0EE00, 0x0EE0EEE0, 0x0EE0EE0E, 0x0EE0EEEE, 0x0E0E0000, 0x0E0E00E0,
-    0x0E0E000E, 0x0E0E00EE, 0x0E0EE000, 0x0E0EE0E0, 0x0E0EE00E, 0x0E0EE0EE,
-    0x0E0E0E00, 0x0E0E0EE0, 0x0E0E0E0E, 0x0E0E0EEE, 0x0E0EEE00, 0x0E0EEEE0,
-    0x0E0EEE0E, 0x0E0EEEEE, 0x0EEE0000, 0x0EEE00E0, 0x0EEE000E, 0x0EEE00EE,
-    0x0EEEE000, 0x0EEEE0E0, 0x0EEEE00E, 0x0EEEE0EE, 0x0EEE0E00, 0x0EEE0EE0,
-    0x0EEE0E0E, 0x0EEE0EEE, 0x0EEEEE00, 0x0EEEEEE0, 0x0EEEEE0E, 0x0EEEEEEE,
-    0xEE000000, 0xEE0000E0, 0xEE00000E, 0xEE0000EE, 0xEE00E000, 0xEE00E0E0,
-    0xEE00E00E, 0xEE00E0EE, 0xEE000E00, 0xEE000EE0, 0xEE000E0E, 0xEE000EEE,
-    0xEE00EE00, 0xEE00EEE0, 0xEE00EE0E, 0xEE00EEEE, 0xEEE00000, 0xEEE000E0,
-    0xEEE0000E, 0xEEE000EE, 0xEEE0E000, 0xEEE0E0E0, 0xEEE0E00E, 0xEEE0E0EE,
-    0xEEE00E00, 0xEEE00EE0, 0xEEE00E0E, 0xEEE00EEE, 0xEEE0EE00, 0xEEE0EEE0,
-    0xEEE0EE0E, 0xEEE0EEEE, 0xEE0E0000, 0xEE0E00E0, 0xEE0E000E, 0xEE0E00EE,
-    0xEE0EE000, 0xEE0EE0E0, 0xEE0EE00E, 0xEE0EE0EE, 0xEE0E0E00, 0xEE0E0EE0,
-    0xEE0E0E0E, 0xEE0E0EEE, 0xEE0EEE00, 0xEE0EEEE0, 0xEE0EEE0E, 0xEE0EEEEE,
-    0xEEEE0000, 0xEEEE00E0, 0xEEEE000E, 0xEEEE00EE, 0xEEEEE000, 0xEEEEE0E0,
-    0xEEEEE00E, 0xEEEEE0EE, 0xEEEE0E00, 0xEEEE0EE0, 0xEEEE0E0E, 0xEEEE0EEE,
-    0xEEEEEE00, 0xEEEEEEE0, 0xEEEEEE0E, 0xEEEEEEEE};
-
+const uint32_t table[256] = {
+    0x00000000, 0x000000A0, 0x0000000A, 0x000000AA, 0x0000A000, 0x0000A0A0,
+    0x0000A00A, 0x0000A0AA, 0x00000A00, 0x00000AA0, 0x00000A0A, 0x00000AAA,
+    0x0000AA00, 0x0000AAA0, 0x0000AA0A, 0x0000AAAA, 0x00A00000, 0x00A000A0,
+    0x00A0000A, 0x00A000AA, 0x00A0A000, 0x00A0A0A0, 0x00A0A00A, 0x00A0A0AA,
+    0x00A00A00, 0x00A00AA0, 0x00A00A0A, 0x00A00AAA, 0x00A0AA00, 0x00A0AAA0,
+    0x00A0AA0A, 0x00A0AAAA, 0x000A0000, 0x000A00A0, 0x000A000A, 0x000A00AA,
+    0x000AA000, 0x000AA0A0, 0x000AA00A, 0x000AA0AA, 0x000A0A00, 0x000A0AA0,
+    0x000A0A0A, 0x000A0AAA, 0x000AAA00, 0x000AAAA0, 0x000AAA0A, 0x000AAAAA,
+    0x00AA0000, 0x00AA00A0, 0x00AA000A, 0x00AA00AA, 0x00AAA000, 0x00AAA0A0,
+    0x00AAA00A, 0x00AAA0AA, 0x00AA0A00, 0x00AA0AA0, 0x00AA0A0A, 0x00AA0AAA,
+    0x00AAAA00, 0x00AAAAA0, 0x00AAAA0A, 0x00AAAAAA, 0xA0000000, 0xA00000A0,
+    0xA000000A, 0xA00000AA, 0xA000A000, 0xA000A0A0, 0xA000A00A, 0xA000A0AA,
+    0xA0000A00, 0xA0000AA0, 0xA0000A0A, 0xA0000AAA, 0xA000AA00, 0xA000AAA0,
+    0xA000AA0A, 0xA000AAAA, 0xA0A00000, 0xA0A000A0, 0xA0A0000A, 0xA0A000AA,
+    0xA0A0A000, 0xA0A0A0A0, 0xA0A0A00A, 0xA0A0A0AA, 0xA0A00A00, 0xA0A00AA0,
+    0xA0A00A0A, 0xA0A00AAA, 0xA0A0AA00, 0xA0A0AAA0, 0xA0A0AA0A, 0xA0A0AAAA,
+    0xA00A0000, 0xA00A00A0, 0xA00A000A, 0xA00A00AA, 0xA00AA000, 0xA00AA0A0,
+    0xA00AA00A, 0xA00AA0AA, 0xA00A0A00, 0xA00A0AA0, 0xA00A0A0A, 0xA00A0AAA,
+    0xA00AAA00, 0xA00AAAA0, 0xA00AAA0A, 0xA00AAAAA, 0xA0AA0000, 0xA0AA00A0,
+    0xA0AA000A, 0xA0AA00AA, 0xA0AAA000, 0xA0AAA0A0, 0xA0AAA00A, 0xA0AAA0AA,
+    0xA0AA0A00, 0xA0AA0AA0, 0xA0AA0A0A, 0xA0AA0AAA, 0xA0AAAA00, 0xA0AAAAA0,
+    0xA0AAAA0A, 0xA0AAAAAA, 0x0A000000, 0x0A0000A0, 0x0A00000A, 0x0A0000AA,
+    0x0A00A000, 0x0A00A0A0, 0x0A00A00A, 0x0A00A0AA, 0x0A000A00, 0x0A000AA0,
+    0x0A000A0A, 0x0A000AAA, 0x0A00AA00, 0x0A00AAA0, 0x0A00AA0A, 0x0A00AAAA,
+    0x0AA00000, 0x0AA000A0, 0x0AA0000A, 0x0AA000AA, 0x0AA0A000, 0x0AA0A0A0,
+    0x0AA0A00A, 0x0AA0A0AA, 0x0AA00A00, 0x0AA00AA0, 0x0AA00A0A, 0x0AA00AAA,
+    0x0AA0AA00, 0x0AA0AAA0, 0x0AA0AA0A, 0x0AA0AAAA, 0x0A0A0000, 0x0A0A00A0,
+    0x0A0A000A, 0x0A0A00AA, 0x0A0AA000, 0x0A0AA0A0, 0x0A0AA00A, 0x0A0AA0AA,
+    0x0A0A0A00, 0x0A0A0AA0, 0x0A0A0A0A, 0x0A0A0AAA, 0x0A0AAA00, 0x0A0AAAA0,
+    0x0A0AAA0A, 0x0A0AAAAA, 0x0AAA0000, 0x0AAA00A0, 0x0AAA000A, 0x0AAA00AA,
+    0x0AAAA000, 0x0AAAA0A0, 0x0AAAA00A, 0x0AAAA0AA, 0x0AAA0A00, 0x0AAA0AA0,
+    0x0AAA0A0A, 0x0AAA0AAA, 0x0AAAAA00, 0x0AAAAAA0, 0x0AAAAA0A, 0x0AAAAAAA,
+    0xAA000000, 0xAA0000A0, 0xAA00000A, 0xAA0000AA, 0xAA00A000, 0xAA00A0A0,
+    0xAA00A00A, 0xAA00A0AA, 0xAA000A00, 0xAA000AA0, 0xAA000A0A, 0xAA000AAA,
+    0xAA00AA00, 0xAA00AAA0, 0xAA00AA0A, 0xAA00AAAA, 0xAAA00000, 0xAAA000A0,
+    0xAAA0000A, 0xAAA000AA, 0xAAA0A000, 0xAAA0A0A0, 0xAAA0A00A, 0xAAA0A0AA,
+    0xAAA00A00, 0xAAA00AA0, 0xAAA00A0A, 0xAAA00AAA, 0xAAA0AA00, 0xAAA0AAA0,
+    0xAAA0AA0A, 0xAAA0AAAA, 0xAA0A0000, 0xAA0A00A0, 0xAA0A000A, 0xAA0A00AA,
+    0xAA0AA000, 0xAA0AA0A0, 0xAA0AA00A, 0xAA0AA0AA, 0xAA0A0A00, 0xAA0A0AA0,
+    0xAA0A0A0A, 0xAA0A0AAA, 0xAA0AAA00, 0xAA0AAAA0, 0xAA0AAA0A, 0xAA0AAAAA,
+    0xAAAA0000, 0xAAAA00A0, 0xAAAA000A, 0xAAAA00AA, 0xAAAAA000, 0xAAAAA0A0,
+    0xAAAAA00A, 0xAAAAA0AA, 0xAAAA0A00, 0xAAAA0AA0, 0xAAAA0A0A, 0xAAAA0AAA,
+    0xAAAAAA00, 0xAAAAAAA0, 0xAAAAAA0A, 0xAAAAAAAA};
 // speed testing variables
 // static const uint8_t speed1[480 * 320 / 4] = { 0 };
 // static const uint8_t speed2[480 * 320 / 4] = { 0 };
@@ -334,131 +333,76 @@ bool ILI9488_LOAD(SPI_HandleTypeDef *spi, uint16_t x, uint16_t y,
   state.dcompImage_SIZE = 0;
 
   // all pixels in image including ones that are clipped off by the edge of
-  // the screen index
-  uint32_t count = 0;
+  // copying state variables for compiler optimization (pointer aliasing)
+  uint16_t col = 0, row = 0;
+  const uint16_t imgWidth = image->width;
+  uint8_t *imgData = image->data;
+  uint32_t decompiledImageSize = 0;
+
   // iterating through compressed image
-
-  // WORK IN PROGRESS
-  //		for (uint32_t i = 0; i < image->size; i++) {
-  //			// filling up current partial byte
-  //			for (uint8_t j = 0; j < (8 - count % 8) % 8 && j <
-  // image->data[i]; j++) { 				if ((count %
-  // image->width) + x < ILI9488_WIDTH
-  //						&& (count / image->width) + y <
-  // ILI9488_HEIGHT) { 					uint32_t
-  // globalpos = ILI9488_WIDTH
-  //							* (y + (count /
-  // image->width)) + x
-  //							+ (count %
-  // image->width); 					if (i % 2) {
-  //						// pixel is high, 1 % 2 = 1
-  //						//  will always be high in
-  // overwrite and OR mode
-  // SET_PIXEL(state.screenCopy, globalpos);
-  // } else if (overWrite) {
-  //						// pixel is low and overwrite is
-  // on. if in OR mode, just leave
-  //						// current pixel as it is
-  //						CLR_PIXEL(state.screenCopy,
-  // globalpos);
-  //					}
-  //					state.dcompImage_SIZE++;
-  //				}
-  //				count++;
-  //			}
-  //
-  //			// filling up next bytes
-  //			for (uint8_t j = 0; j < image->data[i] / 8; j++) {
-  //				// if the next 8 pixels/bits aren't cut off by
-  // the screen 				if ((count % image->width) + x +
-  // 8 < ILI9488_WIDTH
-  //						&& (count / image->width) + y +
-  //(8 / image->width)
-  //< ILI9488_HEIGHT) { 					if (i % 2) {
-  //						// pixel is high, 1 % 2 = 1
-  //						//  will always be high in
-  // overwrite and OR mode
-  // state.screenCopy[count / 8] = 1;
-  // } else if (overWrite) {
-  //						// pixel is low and overwrite is
-  // on. if in OR mode, just leave
-  //						// current pixel as it is
-  //						state.screenCopy[count / 8] = 0;
-  //					}
-  //					state.dcompImage_SIZE += 8;
-  //					count += 8;
-  //				} else {
-  //					//fill up partial byte
-  //					for (uint8_t f = 0; f < 8; f++) {
-  //						if ((count % image->width) + x <
-  // ILI9488_WIDTH
-  //								&& (count /
-  // image->width) + y < ILI9488_HEIGHT) {
-  //							// calculating screen
-  // pixel index from current position within image
-  // uint32_t globalpos = ILI9488_WIDTH
-  //									* (y +
-  //(count / image->width)) + x
-  //									+ (count
-  //% image->width); 							if (i %
-  // 2) {
-  //								// pixel is
-  // high, 1 % 2 = 1
-  //								//  will always
-  // be high in overwrite and OR mode
-  // SET_PIXEL(state.screenCopy, globalpos);
-  // } else if (overWrite) {
-  //								// pixel is low
-  // and overwrite is on. if in OR mode, just leave
-  //								// current pixel
-  // as it is
-  // CLR_PIXEL(state.screenCopy, globalpos);
-  //							}
-  //							state.dcompImage_SIZE++;
-  //						}
-  //						count++;
-  //					}
-  //				}
-  //
-  //				// filling up last partial byte
-  //				for (uint8_t j = 0; j < image->data[i] % 8; j++)
-  //{ 					if ((count % image->width) + x <
-  // ILI9488_WIDTH
-  //							&& (count /
-  // image->width) + y < ILI9488_HEIGHT) {
-  // uint32_t globalpos = ILI9488_WIDTH
-  //								* (y + (count /
-  // image->width)) + x
-  //								+ (count %
-  // image->width); 						if (i % 2) {
-  //							// pixel is high, 1 % 2
-  //= 1
-  //							//  will always be high
-  // in overwrite and OR mode
-  // SET_PIXEL(state.screenCopy, globalpos);
-  // } else if (overWrite) {
-  //							// pixel is low and
-  // overwrite is on. if in OR mode, just leave
-  //							// current pixel as it
-  // is
-  // CLR_PIXEL(state.screenCopy, globalpos);
-  //						}
-  //						state.dcompImage_SIZE++;
-  //					}
-  //					count++;
-  //				}
-  //			}
-  //		}
-
   for (uint32_t i = 0; i < image->size; i++) {
+    // getting the remaining number of pixels in the current RLE value
+    // uint8_t remainingPixels = imgData[i];
+    // bool isOn = (i % 2);
+    //
+    // while (remainingPixels > 0) {
+    //   // getting the remaining number of pixels in the current row
+    //   uint16_t rowAvailable = imgWidth - col;
+    //   // getting the amount to chunk the write by
+    //   uint16_t chunk =
+    //       remainingPixels < rowAvailable ? remainingPixels : rowAvailable;
+    //
+    //   // checking if current row is inside the boundaries of the screen
+    //   if (col + x < ILI9488_WIDTH && row + y < ILI9488_HEIGHT) {
+    //     // filling up the leading byte of the chunk (bitwise)
+    //
+    //     uint32_t globalPos = ILI9488_WIDTH * (y + row) + x + col;
+    //
+    //     // decrementing the remaining pixels
+    //     remainingPixels -= chunk;
+    //
+    //     // updating col and row
+    //     if ((col += chunk) >= imgWidth) {
+    //       col -= imgWidth;
+    //       row++;
+    //     }
+    //
+    //     if (globalPos % 8 != 0) {
+    //       for (uint8_t leading = 0; leading < 8 - (globalPos % 8); leading++) {
+    //         if (isOn) {
+    //           // pixel will always be on
+    //           SET_PIXEL(state.screenCopy, globalPos);
+    //         } else if (overWrite) {
+    //           // byte is OFF colour and overwriting
+    //           CLR_PIXEL(state.screenCopy, globalPos);
+    //         }
+    //         globalPos++;
+    //         chunk--;
+    //       }
+    //     }
+    //
+    //     // filling up the middle bytes (byte-wise)
+    //     for (uint16_t byte = 0; byte < chunk / 8; byte++) {
+    //       if (isOn) {
+    //         // pixel will always be on
+    //         state.screenCopy[(globalPos / 8) + byte] = 0xFF;
+    //       } else if (overWrite) {
+    //         // byte is OFF colour and overwriting
+    //         state.screenCopy[(globalPos / 8) + byte] = 0;
+    //       }
+    //       globalPos += 8;
+    //     }
+    //
+    //     // filling up the trailing byte of the chunk (bitwise)
+    //   }
+    // }
+
     // iterating through the current RLE value
-    // TODO: OPTIMIZE THIS
-    for (uint8_t j = 0; j < image->data[i]; j++) {
-      if ((count % image->width) + x < ILI9488_WIDTH &&
-          (count / image->width) + y < ILI9488_HEIGHT) {
+    for (uint8_t j = 0; j < imgData[i]; j++) {
+      // if the current pixel is in bounds of the screen
+      if (col + x < ILI9488_WIDTH && row + y < ILI9488_HEIGHT) {
         // calculating screen pixel index from current position within image
-        uint32_t globalpos = ILI9488_WIDTH * (y + (count / image->width)) + x +
-                             (count % image->width);
+        uint32_t globalpos = ILI9488_WIDTH * (y + row) + x + col;
 
         if (i % 2) {
           // pixel is high, 1 % 2 = 1
@@ -469,9 +413,13 @@ bool ILI9488_LOAD(SPI_HandleTypeDef *spi, uint16_t x, uint16_t y,
           // current pixel as it is
           CLR_PIXEL(state.screenCopy, globalpos);
         }
-        state.dcompImage_SIZE++;
+		  decompiledImageSize++;
       }
-      count++;
+      // incrementing the column and width
+      if (++col == imgWidth) {
+        col = 0;
+        row++;
+      }
     }
   }
 
@@ -481,6 +429,7 @@ bool ILI9488_LOAD(SPI_HandleTypeDef *spi, uint16_t x, uint16_t y,
   state.y = y;
   state.width = image->width;
   state.height = image->height;
+  state.dcompImage_SIZE = decompiledImageSize;
 
   // temporary call for convenience. TODO remove later
   ILI9488_DRAW(spi);
@@ -617,8 +566,8 @@ bool ILI9488_DRAW(SPI_HandleTypeDef *spi) {
       }
       // transmitting the first chunk, then the interrupt will transmit the
       // second chunk before loading the third etc
-
       HAL_SPI_Transmit_DMA(spi, state.buf[!state.activeBuf], CHUNK);
+      state.startTime = HAL_GetTick();
     }
     return true;
   } else {
@@ -632,22 +581,26 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi) {
   if (hspi->Instance == SPI1) {
     if (state.imageProgress >= state.imageTarget) {
       // done drawing
-
       ILI9488_DESELECT();
       state.currentlyDrawing = 0;
+      state.finalTime = HAL_GetTick() - state.startTime;
       return;
     } else if (state.imageTarget - state.imageProgress < CHUNK) {
       // partial chunk
       HAL_SPI_Transmit_DMA(hspi, state.buf[state.activeBuf],
                            state.imageTarget - state.imageProgress);
-      // done drawing criteria
+      // done drawing condition
       state.imageProgress += CHUNK;
     } else {
       // full chunk
+
       state.imageProgress += CHUNK;
       HAL_SPI_Transmit_DMA(hspi, state.buf[state.activeBuf], CHUNK);
       state.activeBuf = !state.activeBuf;
-      uint16_t shift = state.imageProgress / 4;
+      const uint16_t shift = state.imageProgress / 4;
+      const uint16_t y = state.y;
+      const uint16_t x = state.x;
+      const uint16_t width = state.width;
       // pointer to the active 4 byte section of memory
       uint32_t *dst = (uint32_t *)state.buf[state.activeBuf];
       for (uint32_t i = 0; i < CHUNK / 4; i++) {
@@ -655,8 +608,8 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi) {
         // this line is heavily compiler optimized because any obvious
         // optimizations make it slower
         uint32_t globalpos =
-            ILI9488_SCALED_WIDTH * (state.y + ((i + shift) / state.width)) +
-            state.x + ((i + shift) % state.width);
+            ILI9488_SCALED_WIDTH * (y + ((i + shift) / width)) + x +
+            ((i + shift) % width);
         *dst++ = table[state.screenCopy[globalpos]];
       }
     }
